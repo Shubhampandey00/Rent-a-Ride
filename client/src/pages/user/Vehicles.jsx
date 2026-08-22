@@ -45,6 +45,7 @@ export const onVehicleDetail = async (id, dispatch, navigate) => {
 };
 
 const Vehicles = () => {
+  console.log("Vehicles component rendered");
   const { userAllVehicles } = useSelector((state) => state.userListVehicles);
   const { data, filterdData } = useSelector((state) => state.sortfilterSlice);
   const dispatch = useDispatch();
@@ -53,6 +54,8 @@ const Vehicles = () => {
 
   const BASE_URL = import.meta.env.VITE_PRODUCTION_BACKEND_URL
   //allVariants are set to null when we enter AllVehicles from navbar
+
+  console.log("BASE_URL =", BASE_URL);
 
   let refreshToken = localStorage.getItem('refreshToken')
   let accessToken = localStorage.getItem('accessToken')

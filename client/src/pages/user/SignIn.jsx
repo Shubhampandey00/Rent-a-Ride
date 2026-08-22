@@ -63,7 +63,8 @@ function SignIn() {
   const dispatch = useDispatch();
 
   const onSubmit = async (formData, e) => {
-    const BASE_URL = import.meta.env.VITE_PRODUCTION_BACKEND_URL;
+    const BASE_URL = import.meta.env.VITE_PRODUCTION_BACKEND_URL
+    // console.log("BASE_URL =", BASE_URL);
     e.preventDefault();
     try {
       dispatch(signInStart());
@@ -73,14 +74,18 @@ function SignIn() {
         body: JSON.stringify(formData),
       });
       const data = await res.json();
+      console.log("Login Response:", data);
+
       
       if (data?.accessToken) {
         localStorage.removeItem(("accessToken"))
         localStorage.setItem("accessToken", data.accessToken);
+        console.log("Access Token Saved:", localStorage.getItem("accessToken"));
       }
       if (data?.refreshToken) {
         localStorage.removeItem(("refreshToken"))
         localStorage.setItem("refreshToken", data.refreshToken)
+        console.log("Refresh Token Saved:", localStorage.getItem("refreshToken"));
       }
 
       if (data.succes === false || !res.ok) {

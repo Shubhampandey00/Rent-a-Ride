@@ -8,7 +8,7 @@ import vendorRoute from './routes/venderRoute.js'
 import cors from 'cors'
 import cookieParser from "cookie-parser";
 import { cloudinaryConfig } from "./utils/cloudinaryConfig.js";
-
+// import { insertDummyData } from "./controllers/adminControllers/masterCollectionController.js";
 
 const App = express();
 
@@ -17,15 +17,21 @@ App.use(express.json());
 App.use(cookieParser())
 
 
-dotenv.config();
+dotenv.config({ path: "./backend/.env" });
 const port = 3000;
+
+console.log("Mongo URI:", process.env.mongo_uri);
 
 mongoose
   .connect(process.env.mongo_uri)
-  .then(console.log("connected"))
-  .catch((error) => console.error(error));
+  .then(async () => {
+    console.log("Connected to MongoDB");
 
-  
+    // await insertDummyData();
+
+    console.log("MasterData seeded successfully.");
+  })
+  .catch((error) => console.error(error));
 
 App.listen(port, () => {
   console.log("server listening !");
