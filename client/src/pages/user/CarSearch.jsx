@@ -75,7 +75,7 @@ const CarSearch = () => {
   fetchLov();
 }, []);
   const uniqueState = stateData?.filter((cur, idx) => {
-    return cur !== stateData[idx + 1];
+    return stateData.indexOf(cur) === idx;
   });
   const { selectedState, districtsOfState, selectedDistrict, wholeData, locationsOfDistrict } = useSelector((state) => state.selectRideSlice);
 

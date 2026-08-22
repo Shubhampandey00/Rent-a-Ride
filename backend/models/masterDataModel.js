@@ -9,6 +9,11 @@ const masterDataSchema = new mongoose.Schema({
     required: true,
     unique:true
   },
+
+  state: {
+  type: String,
+  
+},
   district: {
     type: String,
    
