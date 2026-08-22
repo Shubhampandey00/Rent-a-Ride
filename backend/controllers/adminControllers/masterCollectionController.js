@@ -6,13 +6,13 @@ import { errorHandler } from "../../utils/error.js";
 const dummyData = [
 
     //kochi
-    { id: uuidv4(), district: 'Kochi', location: 'kalamassery : skoda service', type: 'location' },
+    { id: uuidv4(),  state: 'Kerala', district: 'Kochi', location: 'kalamassery : skoda service', type: 'location' },
     { id: uuidv4(), district: 'Kochi', location: 'kalamassery : volkswagen', type: 'location' },
     { id: uuidv4(), district: 'Kochi', location: 'cheranallur : volkswagen', type: 'location' },
 
     //kottayam
 
-    { id: uuidv4(), district: 'Kottayam', location: 'ettumanoor : skoda service', type: 'location' },
+    { id: uuidv4(),  state: 'Kerala', district: 'Kottayam', location: 'ettumanoor : skoda service', type: 'location' },
     { id: uuidv4(), district: 'Kottayam', location: 'kottayam : railway station', type: 'location' },
     { id: uuidv4(), district: 'Kottayam', location: 'thellakom : volkswagen', type: 'location' },
 
@@ -32,7 +32,39 @@ const dummyData = [
     { id:uuidv4() , district: 'Calicut', location: 'calicut : railway', type: 'location' },
     { id: uuidv4(), district: 'Calicut', location: 'calicut : airport', type: 'location' },
     { id: uuidv4(), district: 'Calicut', location: 'pavangad : evm nissan', type: 'location' },
-    
+
+    //bangalore
+    { id: uuidv4(), state: 'Karnataka', district: 'Bangalore', location: 'majestic : railway station', type: 'location' },
+    { id: uuidv4(), district: 'Bangalore', location: 'kempegowda : airport', type: 'location' },
+    { id: uuidv4(), district: 'Bangalore', location: 'whitefield : evm service', type: 'location' },
+
+    //mysore
+    { id: uuidv4(), district: 'Mysore', location: 'mysore : railway station', type: 'location' },
+    { id: uuidv4(), district: 'Mysore', location: 'hebbal : bus stand', type: 'location' },
+
+    //chennai
+    { id: uuidv4(), state: 'Tamil Nadu', district: 'Chennai', location: 'chennai central : railway station', type: 'location' },
+    { id: uuidv4(), district: 'Chennai', location: 'chennai : airport', type: 'location' },
+    { id: uuidv4(), district: 'Chennai', location: 'guindy : evm service', type: 'location' },
+
+    //coimbatore
+    { id: uuidv4(), district: 'Coimbatore', location: 'coimbatore : railway station', type: 'location' },
+    { id: uuidv4(), district: 'Coimbatore', location: 'coimbatore : airport', type: 'location' },
+
+    //mumbai
+    { id: uuidv4(), state: 'Maharashtra', district: 'Mumbai', location: 'chhatrapati shivaji : railway station', type: 'location' },
+    { id: uuidv4(), district: 'Mumbai', location: 'chhatrapati shivaji : airport', type: 'location' },
+    { id: uuidv4(), district: 'Mumbai', location: 'andheri : evm service', type: 'location' },
+
+    //pune
+    { id: uuidv4(), district: 'Pune', location: 'pune : railway station', type: 'location' },
+    { id: uuidv4(), district: 'Pune', location: 'pune : airport', type: 'location' },
+
+    //delhi
+    { id: uuidv4(), state: 'Delhi', district: 'New Delhi', location: 'new delhi : railway station', type: 'location' },
+    { id: uuidv4(), district: 'New Delhi', location: 'indira gandhi : airport', type: 'location' },
+    { id: uuidv4(), district: 'New Delhi', location: 'connaught place : evm service', type: 'location' },
+
 
     //cars
 
@@ -97,6 +129,7 @@ const dummyData = [
   export const getCarModelData = async (req,res,next)=> {
     try{
             const availableVehicleModels  = await MasterData.find()
+            console.log("MasterData:", availableVehicleModels);
             if(!availableVehicleModels){
                 return next(errorHandler(404,"no model found"))
             }
