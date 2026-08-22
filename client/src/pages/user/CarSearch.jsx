@@ -10,7 +10,7 @@ import TextField from "@mui/material/TextField";
 import { MenuItem } from "@mui/material";
 
 //reducers
-import { setAvailableCars, setLocationsOfDistrict, setSelectedDistrict } from "../../redux/user/selectRideSlice";
+import { setAvailableCars, setDistrictsOfState, setLocationsOfDistrict, setSelectedDistrict, setSelectedState } from "../../redux/user/selectRideSlice";
 
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +21,7 @@ import useFetchLocationsLov from "../../hooks/useFetchLocationsLov";
 
 const schema = z.object({
   dropoff_location: z.string().min(1, { message: "Dropoff location needed" }),
+  pickup_state: z.string().min(1, { message: "Pickup State needed" }),
   pickup_district: z.string().min(1, { message: "Pickup District needed" }),
   pickup_location: z.string().min(1, { message: "Pickup Location needed" }),
 
@@ -53,10 +54,12 @@ const CarSearch = () => {
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
+      pickup_state: "",
       pickup_district: "",
       pickup_location: "",
       dropoff_location: "",
@@ -66,35 +69,58 @@ const CarSearch = () => {
   });
 
   const navigate = useNavigate();
-  const { districtData } = useSelector((state) => state.modelDataSlice);
+  const { stateData } = useSelector((state) => state.modelDataSlice);
   const { fetchLov, isLoading } = useFetchLocationsLov();
-  const uniqueDistrict = districtData?.filter((cur, idx) => {
-    return cur !== districtData[idx + 1];
+  useEffect(() => {
+  fetchLov();
+}, []);
+  const uniqueState = stateData?.filter((cur, idx) => {
+    return cur !== stateData[idx + 1];
   });
-  const { selectedDistrict, wholeData, locationsOfDistrict } = useSelector((state) => state.selectRideSlice);
+  const { selectedState, districtsOfState, selectedDistrict, wholeData, locationsOfDistrict } = useSelector((state) => state.selectRideSlice);
 
   const [pickup, setPickup] = useState(null);
   const [error, setError] = useState(null);
 
   const dispatch = useDispatch();
 
+  //useEffect to narrow districts down to the selected state
+  useEffect(() => {
+    if (selectedState !== null && wholeData) {
+      const filteredDistricts = wholeData
+        .filter((cur) => cur.state === selectedState)
+        .map((cur) => cur.district);
+
+      const uniqueDistrictsOfState = filteredDistricts.filter((cur, idx) => {
+        return filteredDistricts.indexOf(cur) === idx;
+      });
+
+      dispatch(setDistrictsOfState(uniqueDistrictsOfState));
+    }
+  }, [selectedState, wholeData]);
+
   //useEffect to fetch data from backend for locations
   useEffect(() => {
-    // fetchModelData(dispatch);
-    fetchLov();
-  }, []);
+  console.log("selectedDistrict:", selectedDistrict);
+  console.log("wholeData:", wholeData);
 
-  //for showing appropriate locations according to districts
-  useEffect(() => {
-    if (selectedDistrict !== null) {
-      const showLocationInDistrict = wholeData
-        .filter((cur) => {
-          return cur.district === selectedDistrict;
-        })
-        .map((cur) => cur.location);
-      dispatch(setLocationsOfDistrict(showLocationInDistrict));
-    }
-  }, [selectedDistrict]);
+  if (selectedDistrict !== null && wholeData) {
+    const filtered = wholeData.filter(
+      (cur) => cur.district === selectedDistrict
+    );
+
+    console.log("Filtered records:", filtered);
+    console.log("Filtered count:", filtered.length);
+
+    const showLocationInDistrict = filtered.map(
+      (cur) => cur.location
+    );
+
+    console.log("Locations found:", showLocationInDistrict);
+
+    dispatch(setLocationsOfDistrict(showLocationInDistrict));
+  }
+}, [selectedDistrict, wholeData]);
 
   //search cars
   const hanldeData = async (data) => {
@@ -183,6 +209,49 @@ const CarSearch = () => {
               <form onSubmit={handleSubmit(hanldeData)}>
                 <div className="box-form">
                   <div className="box-form__car-type">
+                    <label htmlFor="pickup_state">
+                      <IconMapPinFilled className="input-icon" /> &nbsp; Pick-up State <p className="text-red-500">*</p>
+                    </label>
+                    <Controller
+                      name="pickup_state"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          id="pickup_state"
+                          className="p-2 capitalize"
+                          select
+                          // required
+                          error={Boolean(errors.pickup_state)}
+                          onChange={(e) => {
+                            field.onChange(e.target.value);
+                            dispatch(setSelectedState(e.target.value));
+
+                            // reset the district & location selections since they belonged to the previous state
+                            setValue("pickup_district", "");
+                            setValue("pickup_location", "");
+                            dispatch(setSelectedDistrict(null));
+                            dispatch(setLocationsOfDistrict(null));
+                          }}
+                        >
+                          {isLoading == true && (
+                            <MenuItem value="">
+                              <span className="animate-pulse">Loading</span> <span className="animate-pulse">...</span>
+                            </MenuItem>
+                          )}
+                          {!isLoading && <MenuItem value="">Select a State</MenuItem>}
+                          {uniqueState?.map((cur, idx) => (
+                            <MenuItem value={cur} key={idx}>
+                              {cur}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    />
+                    {errors.pickup_state && <p className="text-red-500">{errors.pickup_state.message}</p>}
+                  </div>
+
+                  <div className="box-form__car-type">
                     <label htmlFor="pickup_district">
                       <IconMapPinFilled className="input-icon" /> &nbsp; Pick-up District <p className="text-red-500">*</p>
                     </label>
@@ -195,6 +264,7 @@ const CarSearch = () => {
                           id="pickup_district"
                           className="p-2 capitalize"
                           select
+                          disabled={!selectedState}
                           // required
                           error={Boolean(errors.pickup_district)}
                           onChange={(e) => {
@@ -208,7 +278,7 @@ const CarSearch = () => {
                             </MenuItem>
                           )}
                           {!isLoading && <MenuItem value="">Select a Place</MenuItem>}
-                          {uniqueDistrict?.map((cur, idx) => (
+                          {districtsOfState?.map((cur, idx) => (
                             <MenuItem value={cur} key={idx}>
                               {cur}
                             </MenuItem>
@@ -280,7 +350,7 @@ const CarSearch = () => {
                               <span className="animate-pulse">Loading</span> <span className="animate-pulse">...</span>
                             </MenuItem>
                           )}
-                          {isLoading && <MenuItem value="">Select a specific location</MenuItem>}
+                          {!isLoading && <MenuItem value="">Select a specific location</MenuItem>}
                           {/* conditionaly rendering options based on district selected or not */}
                           {locationsOfDistrict &&
                             locationsOfDistrict.map((availableLocations, idx) => (

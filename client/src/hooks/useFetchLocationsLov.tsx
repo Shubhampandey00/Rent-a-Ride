@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { setCompanyData, setDistrictData, setLocationData, setModelData } from "../redux/adminSlices/adminDashboardSlice/CarModelDataSlice";
+import { setCompanyData, setDistrictData, setLocationData, setModelData, setStateData } from "../redux/adminSlices/adminDashboardSlice/CarModelDataSlice";
 import { setWholeData } from "../redux/user/selectRideSlice";
 
 const useFetchLocationsLov = () => {
@@ -41,6 +41,13 @@ const useFetchLocationsLov = () => {
           return districts.indexOf(cur) === idx;
         });
         dispatch(setDistrictData(uniqueDistricts));
+
+        //getting states from data
+        const states = data.filter((cur) => cur.type === "location").map((cur) => cur.state);
+        const uniqueStates = states.filter((cur, idx) => {
+          return states.indexOf(cur) === idx;
+        });
+        dispatch(setStateData(uniqueStates));
 
         //setting whole data
         const wholeData = data.filter((cur) => cur.type === "location");

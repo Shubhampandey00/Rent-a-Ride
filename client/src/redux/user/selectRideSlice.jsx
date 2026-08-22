@@ -2,6 +2,8 @@ import { createSlice } from "@reduxjs/toolkit"
 
 
 const initialState  =  {
+    selectedState : null,
+    districtsOfState : null,
     selectedDistrict : null,
     locationsOfDistrict : null,
     wholeData : null,
@@ -12,6 +14,12 @@ const selectRideSlice = createSlice({
     name:'selectRideSlice',
     initialState,
     reducers:{
+        setSelectedState : (state,action) => {
+            state.selectedState = action.payload
+        },
+        setDistrictsOfState : (state,action) => {
+            state.districtsOfState = action.payload
+        },
         setSelectedDistrict : (state,action) => {
             state.selectedDistrict = action.payload
         },
@@ -29,5 +37,5 @@ const selectRideSlice = createSlice({
     },
 })
 
-export const {setSelectedDistrict ,setLocationsOfDistrict, setWholeData , setAvailableCars} = selectRideSlice.actions
+export const {setSelectedState ,setDistrictsOfState, setSelectedDistrict ,setLocationsOfDistrict, setWholeData , setAvailableCars} = selectRideSlice.actions
 export default  selectRideSlice.reducer

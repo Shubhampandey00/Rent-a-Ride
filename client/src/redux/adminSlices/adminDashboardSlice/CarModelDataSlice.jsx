@@ -5,6 +5,7 @@ const initialState = {
   companyData: [],
   locationData: [],
   districtData : [],
+  stateData : [],
   loading: false,
 };
 
@@ -23,9 +24,12 @@ export const ModelDataSlice = createSlice({
     },
     setDistrictData : (state,action)=> {
       state.districtData = action.payload;
+    },
+    setStateData : (state,action)=> {
+      state.stateData = action.payload;
     }
   },
 });
 
-export const { setModelData ,setCompanyData,setLocationData , setDistrictData} = ModelDataSlice.actions;
+export const { setModelData ,setCompanyData,setLocationData , setDistrictData, setStateData} = ModelDataSlice.actions;
 export default ModelDataSlice.reducer;
