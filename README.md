@@ -22,7 +22,7 @@ A modern car rental website designed to help users explore vehicles and plan a r
 - Navigation links for Home, Vehicles, Enterprise, Contact, and Profile
 - Responsive design goals for desktop and smaller screens
 
-> Note: Describe only the features that are implemented in your current version. If a button or form is currently UI-only, mention that it is not connected to backend functionality yet.
+
 
 ## Tech Stack
 
@@ -99,7 +99,7 @@ JWT_SECRET=YOUR_JWT_SECRET
 CLIENT_URL=YOUR_FRONTEND_URL
 ```
 
-Never put real API keys, database passwords, JWT secrets, or production credentials in this README or in a public repository. Keep `.env` files out of Git using `.gitignore`.
+gitignore`.
 
 ## Future Improvements
 
