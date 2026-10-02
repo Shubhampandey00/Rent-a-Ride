@@ -25,7 +25,11 @@ console.log("Mongo URI:", process.env.mongo_uri);
 mongoose
   .connect(process.env.mongo_uri)
   .then(async () => {
+    console.log("=================================");
     console.log("Connected to MongoDB");
+    console.log("Database:", mongoose.connection.name);
+    console.log("Host:", mongoose.connection.host);
+    console.log("=================================");
 
     // await insertDummyData();
 

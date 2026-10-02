@@ -5,53 +5,447 @@ import Jwt from "jsonwebtoken";
 
 const expireDate = new Date(Date.now() + 3600000);
 
+// ==========================================
+// CREATE ACCESS + REFRESH TOKENS
+// ==========================================
+const createTokens = (userId) => {
+  const accessToken = Jwt.sign(
+    { id: userId },
+    process.env.ACCESS_TOKEN,
+    { expiresIn: "15m" }
+  );
+
+  const refreshToken = Jwt.sign(
+    { id: userId },
+    process.env.REFRESH_TOKEN,
+    { expiresIn: "7d" }
+  );
+
+  return { accessToken, refreshToken };
+};
+
+// ==========================================
+// SIGN UP
+// ==========================================
 export const signUp = async (req, res, next) => {
-  const { username, email, password } = req.body;
-
-  // i put hashedPassword and newUser in try because if emty value comes the exicution dosenot stop
-
   try {
+    const { username, email, password } = req.body;
+
+    // Check required fields
+    if (!username || !email || !password) {
+      return next(
+        errorHandler(
+          400,
+          "Username, email and password are required"
+        )
+      );
+    }
+
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Validate username
+    if (cleanUsername.length < 3) {
+      return next(
+        errorHandler(
+          400,
+          "Username must contain at least 3 characters"
+        )
+      );
+    }
+
+    // Validate password
+    if (password.length < 6) {
+      return next(
+        errorHandler(
+          400,
+          "Password must contain at least 6 characters"
+        )
+      );
+    }
+
+    // Check username
+    const existingUsername = await User.findOne({
+      username: cleanUsername,
+    });
+
+    if (existingUsername) {
+      return next(
+        errorHandler(409, "Username already exists")
+      );
+    }
+
+    // Check email
+    const existingEmail = await User.findOne({
+      email: cleanEmail,
+    });
+
+    if (existingEmail) {
+      return next(
+        errorHandler(409, "Email is already registered")
+      );
+    }
+
+    // Hash password
     const hashedPassword = bcryptjs.hashSync(password, 10);
+
+    /*
+     * IMPORTANT:
+     * phoneNumber is intentionally NOT included here.
+     *
+     * New users can register without a phone number.
+     */
     const newUser = new User({
-      username,
-      email,
+      username: cleanUsername,
+      email: cleanEmail,
       password: hashedPassword,
       isUser: true,
     });
-    await newUser.save();
-    res.status(200).json({ message: "newUser added successfully" });
+
+    const savedUser = await newUser.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      userId: savedUser._id,
+    });
   } catch (error) {
+    console.error("SIGNUP ERROR:", error);
+
+    // Handle MongoDB duplicate-key errors
+    if (error?.code === 11000) {
+      const duplicateField =
+        Object.keys(error.keyPattern || {})[0];
+
+      if (duplicateField === "email") {
+        return next(
+          errorHandler(409, "Email is already registered")
+        );
+      }
+
+      if (duplicateField === "username") {
+        return next(
+          errorHandler(409, "Username already exists")
+        );
+      }
+
+      if (duplicateField === "phoneNumber") {
+        return next(
+          errorHandler(409, "Phone number is already registered")
+        );
+      }
+    }
+
     next(error);
   }
 };
 
-//refreshTokens
-export const refreshToken = async (req, res, next) => {
-  // const refreshToken = req.cookies.refresh_token;
+// ==========================================
+// SIGN IN
+// ==========================================
+export const signIn = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
 
-  if (!req.headers.authorization) {
-    return next(errorHandler(403, "bad request no header provided"));
+    if (!email || !password) {
+      return next(
+        errorHandler(
+          400,
+          "Email and password are required"
+        )
+      );
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    const validUser = await User.findOne({
+      email: cleanEmail,
+    });
+
+    if (!validUser) {
+      return next(errorHandler(404, "User not found"));
+    }
+
+    const validPassword = bcryptjs.compareSync(
+      password,
+      validUser.password
+    );
+
+    if (!validPassword) {
+      return next(
+        errorHandler(401, "Wrong credentials")
+      );
+    }
+
+    const {
+      accessToken,
+      refreshToken,
+    } = createTokens(validUser._id);
+
+    // Save refresh token
+    await User.findByIdAndUpdate(
+      validUser._id,
+      { refreshToken },
+      { new: true }
+    );
+
+    // Don't send password to frontend
+    const {
+      password: hashedPassword,
+      ...rest
+    } = validUser.toObject();
+
+    return res.status(200).json({
+      ...rest,
+      accessToken,
+      refreshToken,
+      isAdmin: validUser.isAdmin,
+      isUser: validUser.isUser,
+      isVendor: validUser.isVendor,
+    });
+  } catch (error) {
+    console.error("SIGNIN ERROR:", error);
+    next(error);
   }
+};
 
-  const refreshToken = req.headers.authorization.split(" ")[1].split(",")[0];
-  const accessToken = req.headers.authorization.split(" ")[1].split(",")[1];
+// ==========================================
+// GOOGLE SIGN IN / SIGN UP
+// ==========================================
+export const google = async (req, res, next) => {
+  try {
+    const { name, email, photo } = req.body;
 
-  console.log(refreshToken);
-  console.log(accessToken);
+    if (!email) {
+      return next(
+        errorHandler(
+          400,
+          "Google account email is required"
+        )
+      );
+    }
 
-  if (!refreshToken) {
-    // res.clearCookie("access_token", "refresh_token");
-    return next(errorHandler(401, "You are not authenticated"));
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check whether this email already exists
+    const existingUser = await User.findOne({
+      email: cleanEmail,
+    });
+
+    // ========================================
+    // EXISTING USER
+    // ========================================
+    if (existingUser) {
+      // Don't allow a vendor account to become a user
+      if (!existingUser.isUser) {
+        return next(
+          errorHandler(
+            409,
+            "This email is already registered as a vendor"
+          )
+        );
+      }
+
+      // Update Google profile picture if available
+      if (
+        photo &&
+        existingUser.profilePicture !== photo
+      ) {
+        existingUser.profilePicture = photo;
+      }
+
+      const {
+        accessToken,
+        refreshToken,
+      } = createTokens(existingUser._id);
+
+      existingUser.refreshToken = refreshToken;
+
+      await existingUser.save();
+
+      const {
+        password: hashedPassword,
+        ...rest
+      } = existingUser.toObject();
+
+      return res.status(200).json({
+        ...rest,
+        accessToken,
+        refreshToken,
+        isUser: existingUser.isUser,
+        isAdmin: existingUser.isAdmin,
+        isVendor: existingUser.isVendor,
+      });
+    }
+
+    // ========================================
+    // NEW GOOGLE USER
+    // ========================================
+
+    // Google doesn't provide our application's password.
+    // Generate a random one so the User model remains valid.
+    const generatedPassword =
+      Math.random().toString(36).slice(-8) +
+      Math.random().toString(36).slice(-8);
+
+    const hashedPassword = bcryptjs.hashSync(
+      generatedPassword,
+      10
+    );
+
+    // Generate unique username
+    const baseUsername =
+      (name || "user")
+        .trim()
+        .replace(/\s+/g, "")
+        .toLowerCase();
+
+    const username =
+      `${baseUsername}_${Math.random()
+        .toString(36)
+        .slice(-8)}`;
+
+    /*
+     * IMPORTANT:
+     * phoneNumber is NOT included.
+     */
+    const newUser = new User({
+      username,
+      email: cleanEmail,
+      password: hashedPassword,
+      profilePicture: photo || undefined,
+      isUser: true,
+    });
+
+    const savedUser = await newUser.save();
+
+    const {
+      accessToken,
+      refreshToken,
+    } = createTokens(savedUser._id);
+
+    savedUser.refreshToken = refreshToken;
+
+    await savedUser.save();
+
+    const {
+      password: savedPassword,
+      ...rest
+    } = savedUser.toObject();
+
+    return res.status(201).json({
+      ...rest,
+      accessToken,
+      refreshToken,
+      isUser: savedUser.isUser,
+      isAdmin: savedUser.isAdmin,
+      isVendor: savedUser.isVendor,
+    });
+  } catch (error) {
+    console.error("GOOGLE AUTH ERROR:", error);
+
+    // Handle MongoDB duplicate-key errors
+    if (error?.code === 11000) {
+      const duplicateField =
+        Object.keys(error.keyPattern || {})[0];
+
+      if (duplicateField === "email") {
+        return next(
+          errorHandler(
+            409,
+            "Email is already registered"
+          )
+        );
+      }
+
+      if (duplicateField === "username") {
+        return next(
+          errorHandler(
+            409,
+            "Username already exists"
+          )
+        );
+      }
+
+      if (duplicateField === "phoneNumber") {
+        return next(
+          errorHandler(
+            409,
+            "Phone number is already registered"
+          )
+        );
+      }
+    }
+
+    next(error);
+  }
+};
+
+// ==========================================
+// REFRESH TOKEN
+// ==========================================
+export const refreshToken = async (
+  req,
+  res,
+  next
+) => {
+  if (!req.headers.authorization) {
+    return next(
+      errorHandler(
+        403,
+        "No authorization header provided"
+      )
+    );
   }
 
   try {
-    const decoded = Jwt.verify(refreshToken, process.env.REFRESH_TOKEN);
+    const authHeader = req.headers.authorization;
+
+    const tokenPart = authHeader.split(" ")[1];
+
+    if (!tokenPart) {
+      return next(
+        errorHandler(
+          401,
+          "Refresh token not provided"
+        )
+      );
+    }
+
+    const [refreshTokenValue] = tokenPart.split(",");
+
+    if (!refreshTokenValue) {
+      return next(
+        errorHandler(
+          401,
+          "Refresh token not provided"
+        )
+      );
+    }
+
+    const decoded = Jwt.verify(
+      refreshTokenValue,
+      process.env.REFRESH_TOKEN
+    );
+
     const user = await User.findById(decoded.id);
 
-    if (!user) return next(errorHandler(403, "Invalid refresh token"));
-    if (user.refreshToken !== refreshToken) {
-      // res.clearCookie("access_token", "refresh_token");
-      return next(errorHandler(403, "Invalid refresh token"));
+    if (!user) {
+      return next(
+        errorHandler(
+          403,
+          "Invalid refresh token"
+        )
+      );
+    }
+
+    if (user.refreshToken !== refreshTokenValue) {
+      return next(
+        errorHandler(
+          403,
+          "Invalid refresh token"
+        )
+      );
     }
 
     const newAccessToken = Jwt.sign(
@@ -59,155 +453,35 @@ export const refreshToken = async (req, res, next) => {
       process.env.ACCESS_TOKEN,
       { expiresIn: "15m" }
     );
+
     const newRefreshToken = Jwt.sign(
       { id: user._id },
       process.env.REFRESH_TOKEN,
       { expiresIn: "7d" }
     );
 
-    // Update the refresh token in the database for the user
-    await User.updateOne({ _id: user._id }, { refreshToken: newRefreshToken });
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        refreshToken: newRefreshToken,
+      }
+    );
 
-    res
-      .cookie("access_token", newAccessToken, {
-        httpOnly: true,
-        maxAge: 900000,
-        sameSite: "None",
-        secure: true,
-        domain: "rent-a-ride-two.vercel.app",
-      }) // 15 minutes
-      .cookie("refresh_token", newRefreshToken, {
-        httpOnly: true,
-        maxAge: 604800000,
-        sameSite: "None",
-        secure: true,
-        domain: "rent-a-ride-two.vercel.app",
-      }) // 7 days
-      .status(200)
-      .json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+    return res.status(200).json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
   } catch (error) {
-    next(errorHandler(500, "error in refreshToken controller in server"));
-  }
-};
+    console.error(
+      "REFRESH TOKEN ERROR:",
+      error
+    );
 
-export const signIn = async (req, res, next) => {
-  const { email, password } = req.body;
-  try {
-    const validUser = await User.findOne({ email });
-    if (!validUser) return next(errorHandler(404, "user not found"));
-    const validPassword = bcryptjs.compareSync(password, validUser.password);
-    if (!validPassword) return next(errorHandler(401, "wrong credentials"));
-    let accessToken = "";
-    let refreshToken = "";
-    accessToken = Jwt.sign({ id: validUser._id }, process.env.ACCESS_TOKEN, {
-      expiresIn: "15m",
-    }); //accessToken expires in 15 minutes
-    refreshToken = Jwt.sign({ id: validUser._id }, process.env.REFRESH_TOKEN, {
-      expiresIn: "7d",
-    }); //refreshToken expires in 7 days
-
-    const updatedData = await User.findByIdAndUpdate(
-      { _id: validUser._id },
-      { refreshToken },
-      { new: true }
-    ); //store the refresh token in db
-
-    //separating password from the updatedData
-    const { password: hashedPassword, isAdmin, ...rest } = updatedData._doc;
-
-    //not sending users hashed password to frontend
-    const responsePayload = {
-      refreshToken: refreshToken,
-      accessToken,
-      isAdmin,
-      ...rest,
-    };
-
-    req.user = {
-      ...rest,
-      isAdmin: validUser.isAdmin,
-      isUser: validUser.isUser,
-    };
-
-    //the code for the cookie
-    // .cookie("access_token", accessToken, {
-    //   httpOnly: true,
-    //   maxAge: 900000,
-    //   sameSite: "None",
-    //   secure: true,
-    //   domain: "rent-a-ride-two.vercel.app"
-    // }) // 15 minutes
-    // .cookie("refresh_token", refreshToken, {
-    //   httpOnly: true,
-    //   maxAge: 604800000,
-    //   sameSite: "None",
-    //   secure: true,
-    //   domain: "rent-a-ride-two.vercel.app"
-    // })
-    // 7 days
-
-    res.status(200).json(responsePayload);
-
-    next();
-  } catch (error) {
-    next(error);
-    console.log(error);
-  }
-};
-
-export const google = async (req, res, next) => {
-  try {
-    const user = await User.findOne({ email: req.body.email }).lean();
-    if (user && !user.isUser) {
-      return next(errorHandler(409, "email already in use as a vendor"));
-    }
-    if (user) {
-      const { password: hashedPassword, ...rest } = user;
-      const token = Jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN);
-
-      res
-        .cookie("access_token", token, {
-          httpOnly: true,
-          expires: expireDate,
-          SameSite: "None",
-          Domain: ".vercel.app",
-        })
-        .status(200)
-        .json(rest);
-    } else {
-      const generatedPassword =
-        Math.random().toString(36).slice(-8) +
-        Math.random().toString(36).slice(-8); //we are generating a random password since there is no password in result
-      const hashedPassword = bcryptjs.hashSync(generatedPassword, 10);
-      const newUser = new User({
-        profilePicture: req.body.photo,
-        password: hashedPassword,
-        username:
-          req.body.name.split(" ").join("").toLowerCase() +
-          Math.random().toString(36).slice(-8) +
-          Math.random().toString(36).slice(-8),
-        email: req.body.email,
-        isUser: true,
-        //we cannot set username to req.body.name because other user may also have same name so we generate a random value and concat it to name
-        //36 in toString(36) means random value from 0-9 and a-z
-      });
-      const savedUser = await newUser.save();
-      const userObject = savedUser.toObject();
-
-      const token = Jwt.sign({ id: newUser._id }, process.env.ACCESS_TOKEN);
-      const { password: hashedPassword2, ...rest } = userObject;
-      res
-        .cookie("access_token", token, {
-          httpOnly: true,
-          expires: expireDate,
-          sameSite: "None",
-          secure: true,
-          domain: ".vercel.app",
-        })
-        .status(200)
-        .json(rest);
-    }
-  } catch (error) {
-    next(error);
+    return next(
+      errorHandler(
+        401,
+        "Invalid or expired refresh token"
+      )
+    );
   }
 };
