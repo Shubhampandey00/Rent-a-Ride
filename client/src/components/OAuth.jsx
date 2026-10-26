@@ -1,17 +1,46 @@
-import { GoogleAuthProvider, signInWithPopup, getAuth } from "@firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  getAuth,
+} from "@firebase/auth";
+
 import { app } from "../firebase";
-import { signInFailure, signInSuccess } from "../redux/user/userSlice";
+
+import {
+  loadingEnd,
+  signInFailure,
+  signInStart,
+  signInSuccess,
+} from "../redux/user/userSlice";
+
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+
 function OAuth() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleGoogleClick = async () => {
     try {
-      const provider = new GoogleAuthProvider();
+      dispatch(signInStart());
+
+      // Get Firebase Auth instance
       const auth = getAuth(app);
+
+      // Google provider
+      const provider = new GoogleAuthProvider();
+
+      // Optional: always ask Google account selection
+      provider.setCustomParameters({
+        prompt: "select_account",
+      });
+
+      // Open Google login popup
       const result = await signInWithPopup(auth, provider);
+
+      console.log("Google user:", result.user);
+
+      // Send Google user information to your backend
       const res = await fetch("/api/auth/google", {
         method: "POST",
         headers: {
@@ -23,37 +52,109 @@ function OAuth() {
           photo: result.user.photoURL,
         }),
       });
+
       const data = await res.json();
 
-      if (res.ok) {
-        if (data.isUser) {
-          dispatch(signInSuccess(data));
-          navigate("/");
-        } else {
-          dispatch(signInFailure(data));
-        }
-      } else {
+      console.log("Backend Google login response:", data);
+
+      if (!res.ok) {
         dispatch(signInFailure(data));
+        return;
       }
+
+      // Save tokens
+      if (data?.accessToken) {
+        localStorage.setItem("accessToken", data.accessToken);
+      }
+
+      if (data?.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
+
+      // Normal user
+      if (data?.isUser) {
+        dispatch(signInSuccess(data));
+        navigate("/");
+        return;
+      }
+
+      // Admin/vendor or unexpected response
+      dispatch(
+        signInFailure({
+          message: data?.message || "Google login failed",
+        })
+      );
     } catch (error) {
-      console.log("could not login with google ", error);
+      console.error("Google login error:", error);
+
+      dispatch(
+        signInFailure({
+          message: error?.message || "Could not login with Google",
+        })
+      );
+    } finally {
+      dispatch(loadingEnd());
     }
   };
+
   return (
-    <div className={`px-5`}>
+    <div className="px-5">
+      {/* Google */}
       <button
-        className="flex w-full gap-3 justify-center border  py-3 rounded-md  items-center  border-black mb-4"
         type="button"
         onClick={handleGoogleClick}
+        className="
+          flex
+          w-full
+          gap-3
+          justify-center
+          items-center
+          border
+          border-black
+          dark:border-gray-500
+          py-3
+          rounded-md
+          mb-4
+          text-black
+          dark:text-white
+          bg-white
+          dark:bg-gray-900
+          hover:bg-gray-100
+          dark:hover:bg-gray-800
+          transition-colors
+        "
       >
         <span className="icon-[devicon--google]"></span>
+
         <span>Continue with Google</span>
       </button>
+
+      {/* Facebook */}
       <button
-        className="flex w-full gap-3 justify-center pl-4 border  py-3 rounded-md  items-center border-black"
         type="button"
+        className="
+          flex
+          w-full
+          gap-3
+          justify-center
+          items-center
+          border
+          border-black
+          dark:border-gray-500
+          py-3
+          rounded-md
+          pl-4
+          text-black
+          dark:text-white
+          bg-white
+          dark:bg-gray-900
+          hover:bg-gray-100
+          dark:hover:bg-gray-800
+          transition-colors
+        "
       >
         <span className="icon-[logos--facebook]"></span>
+
         <span>Continue with Facebook</span>
       </button>
     </div>

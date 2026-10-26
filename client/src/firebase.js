@@ -1,17 +1,13 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "@firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { initializeApp } from "firebase/app";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "rent-a-ride-5af16.firebaseapp.com",
-  projectId: "rent-a-ride-5af16",
-  storageBucket: "rent-a-ride-5af16.appspot.com",
-  messagingSenderId: "1068277218849",
-  appId: "1:1068277218849:web:8966754aa388cea132ed60"
+  authDomain: "rent-a-ride-5dd83.firebaseapp.com",
+  projectId: "rent-a-ride-5dd83",
+  storageBucket: "rent-a-ride-5dd83.firebasestorage.app",
+  messagingSenderId: "215065408350",
+  appId: "1:215065408350:web:e08dd139270cc2922795cf",
+  measurementId: "G-1JNN8NSL49",
 };
 
-// Initialize Firebase
 export const app = initializeApp(firebaseConfig);

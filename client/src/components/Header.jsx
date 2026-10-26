@@ -1,192 +1,24 @@
-import styles from "../index";
-import { navLinks } from "../constants";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { RxHamburgerMenu } from "react-icons/rx";
-import { MdMenuOpen } from "react-icons/md";
 import { useState } from "react";
-import { Drawer } from "antd";
-
+import { FaMoon, FaSun, FaUserCircle } from "react-icons/fa";
+import { RxHamburgerMenu } from "react-icons/rx";
+import { MdClose } from "react-icons/md";
+import { navLinks } from "../constants";
+import { useThemeMode } from "../context/ThemeContext";
 
 function Header() {
   const { currentUser } = useSelector((state) => state.user);
-  const [nav, setNav] = useState(false);
+  const { isDark, toggleTheme } = useThemeMode();
+  const [open, setOpen] = useState(false);
+  const signedIn = currentUser && !currentUser.isAdmin && !currentUser.isVendor;
+  const close = () => setOpen(false);
 
-  return (
-    <div
-      className={`w-full   flex justify-between items-center px-6 sm:px-12 md:px-18 lg:py-6 lg:px-28 pt-10 mt-5 md:mt-10 sm:max-w-[900px] lg:max-w-[1500px] mx-auto `}
-    >
-      <Link to="/">
-        <div
-          className={` text-[16px] md:text-[18px] lg:text-[20px] font-poppins font-bold`}
-        >
-          Rent a Ride
-        </div>
-      </Link>
-
-      <div className="hidden lg:block">
-        <ul className="flex list-none">
-          {navLinks.map((navlink, index) => (
-            <li
-              key={index}
-              className={`${index != navLinks.length - 1 ? "mx-4" : "mx-0"}`}
-            >
-              <Link
-                to={navlink.path}
-                className={`text-black  font-poppins cursor-pointer font-semibold`}
-              >
-                {navlink.title}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="flex gap-2">
-        <div className="hidden md:inline-flex">
-          <Link to={"/signIn"}>
-            {currentUser && !currentUser.isAdmin && !currentUser.isVendor ? (
-              ""
-            ) : (
-              <button
-                id="signin"
-                className={`border-[1px] hidden lg:inline-flex border-green-500 py-1 text-[12px] md:text-[14px] sm:py-[7px] px-2 sm:px-4 font-normal sm:font-semibold rounded-md `}
-              >
-                Sign In
-              </button>
-            )}
-          </Link>
-        </div>
-        <div className="hidden lg:flex items-center justify-center">
-          {currentUser && !currentUser.isAdmin && !currentUser.isVendor ? (
-            <Link to={"/profile"}>
-              <img
-                src={`${currentUser.profilePicture}`}
-                alt="fsd"
-                referrerPolicy="no-referrer"
-                className="h-10 w-10 rounded-[50%] object-cover"
-              />
-            </Link>
-          ) : (
-            <div className="hidden lg:inline-flex">
-              <Link to={"/signup"}>
-                <button id="signup" className={`${styles.button} `}>
-                  Sign Up
-                </button>
-              </Link>
-            </div>
-          )}
-        </div>
-
-
-        {/*  Mobile Menu */}
-        <div className="relative lg:hidden flex justify-center items-center">
-          <button onClick={() => setNav(!nav)}>
-            <div>{nav ? <MdMenuOpen /> : <RxHamburgerMenu />}</div>
-          </button>
-          <Drawer
-            destroyOnClose={true}
-            onClose={() => setNav(false)}
-            open={nav}
-          >
-            <div className="flex flex-col items-start justify-between gap-y-10">
-              {navLinks.map((navlink, index) => (
-            
-                  <Link
-                    key={index}
-                    to={navlink.path}
-                    className="text-[26px]"
-                    onClick={() => setNav(false)}
-                  >
-                    {navlink.title}
-                  </Link>
-              
-              ))}
-
-              {currentUser && !currentUser.isAdmin && !currentUser.isVendor && (
-                <div>
-                  <Link to={"/profile"}>
-                    <div id="signup" className={` rounded-md font-semibold text-[24px]`}>
-                      Profile
-                    </div>
-                  </Link>
-                </div>
-              )}
-
-              <div>
-                <Link to={"/signIn"}>
-                  {currentUser &&
-                  !currentUser.isAdmin &&
-                  !currentUser.isVendor ? (
-                    ""
-                  ) : (
-                    <button
-                      id="signin"
-                      className={` rounded-md  text-[24px] font-semibold  `}
-                    >
-                      Sign In
-                    </button>
-                  )}
-                </Link>
-              </div>
-
-              <div>
-                {currentUser &&
-                !currentUser.isAdmin &&
-                !currentUser.isVendor ? (
-                  ""
-                ) : (
-                  <div>
-                    <Link to={"/signup"}>
-                      <button
-                        id="signup"
-                        className=" rounded-md  text-[24px] font-semibold "
-                      >
-                        Sign Up
-                      </button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Drawer>
-          {nav && (
-            <div>
-              <div className="absolute top-6 z-10 right-0  ">
-                <Link to={"/signIn"}>
-                  {currentUser &&
-                  !currentUser.isAdmin &&
-                  !currentUser.isVendor ? (
-                    ""
-                  ) : (
-                    <button
-                      id="signin"
-                      className={`border-[1px] w-[80px]  border-green-500 bg-green-500  py-1 text-[10px]   px-2  font-normal sm:font-semibold  `}
-                    >
-                      Sign In
-                    </button>
-                  )}
-                </Link>
-              </div>
-
-              <div>
-                {currentUser &&
-                  !currentUser.isAdmin &&
-                  !currentUser.isVendor && (
-                    <div className="hidden lg:inline-flex">
-                      <Link to={"/signup"}>
-                        <button id="signup" className={`${styles.button} `}>
-                          Sign Up
-                        </button>
-                      </Link>
-                    </div>
-                  )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#06111f]/95"><div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
+    <Link to="/" onClick={close} className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-500 text-lg font-black text-slate-950">R</span><span className="text-lg font-extrabold tracking-tight">Rent a <span className="text-emerald-500">Ride</span></span></Link>
+    <nav className="hidden items-center gap-8 lg:flex">{navLinks.map((link) => <Link key={link.id} to={link.path} className="text-sm font-semibold text-slate-600 transition hover:text-emerald-500 dark:text-slate-300">{link.title}</Link>)}</nav>
+    <div className="flex items-center gap-2"><button type="button" onClick={toggleTheme} aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"} className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-emerald-400 hover:text-emerald-500 dark:border-white/10 dark:text-slate-300">{isDark ? <FaSun /> : <FaMoon />}</button>{signedIn ? <Link to="/profile" className="hidden items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-bold dark:border-white/10 sm:flex"><FaUserCircle className="text-emerald-500" /> Profile</Link> : <Link to="/signin" className="hidden rounded-md bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-emerald-400 sm:block">Sign in</Link>}<button type="button" onClick={() => setOpen(!open)} aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-xl dark:border-white/10 lg:hidden">{open ? <MdClose /> : <RxHamburgerMenu />}</button></div>
+  </div>{open && <nav className="border-t border-slate-200 bg-white px-5 py-5 dark:border-white/10 dark:bg-[#06111f] lg:hidden">{navLinks.map((link) => <Link key={link.id} to={link.path} onClick={close} className="block border-b border-slate-100 py-3 font-semibold dark:border-white/10">{link.title}</Link>)}{signedIn ? <Link to="/profile" onClick={close} className="block py-3 font-semibold text-emerald-500">Profile</Link> : <Link to="/signin" onClick={close} className="block py-3 font-semibold text-emerald-500">Sign in</Link>}</nav>}</header>;
 }
 
 export default Header;

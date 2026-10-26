@@ -1,12 +1,9 @@
 import { useDispatch, useSelector } from "react-redux";
-import { FaCarSide } from "react-icons/fa";
-import { MdAirlineSeatReclineNormal } from "react-icons/md";
-
-import CarNotFound from "./CarNotFound";
 import { useNavigate } from "react-router-dom";
-
+import VehicleCard from "../../components/VehicleCard";
 import { setVariants } from "../../redux/user/listAllVehicleSlice";
 import { setFilteredData } from "../../redux/user/sortfilterSlice";
+import CarNotFound from "./CarNotFound";
 
 const AvailableVehiclesAfterSearch = () => {
   const { availableCars } = useSelector((state) => state.selectRideSlice);
@@ -31,9 +28,6 @@ const AvailableVehiclesAfterSearch = () => {
         },
         body: JSON.stringify(datas),
       });
-      if (!res.ok) {
-        console.log("not success");
-      }
       if (res.ok) {
         const data = await res.json();
         dispatch(setVariants(data));
@@ -45,92 +39,43 @@ const AvailableVehiclesAfterSearch = () => {
     }
   };
 
+  const visibleCars = (availableCars || []).filter(
+    (vehicle) => vehicle.isDeleted === "false"
+  );
+
   return (
-    <div>
-      {availableCars && availableCars.length > 0 && (
-        <div className="text-center flex flex-col  mt-10 justify-center items-center sm:max-w-[500px] mx-auto">
-          <h2 className="text-[18px] lg:text-[24px]">Choose From Options</h2>
-          <p className="text-center text-[8px] px-6  lg:text-[12px]  lg:w-[550px]">
-            Choose from our modern variety vehicles colllection . Feel like home
-            just like your own car Our clients have experienced our service and
-            results, and they are eager to share their positive experiences with
-            you.
+    <main className="mx-auto w-full max-w-7xl px-4 py-10 lg:px-8">
+      {visibleCars.length > 0 && (
+        <header className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
+            Available now
           </p>
-        </div>
+          <h1 className="mt-2 text-2xl font-bold text-slate-950 lg:text-3xl">
+            Choose your ride
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Pick a model that fits your trip. You can view matching variants on
+            the next step.
+          </p>
+        </header>
       )}
 
-      <div className=" mx-auto flex sm:flex-row  w-full  lg:grid lg:max-w-[1000px]  lg:grid-cols-3 justify-center items-center gap-5 flex-wrap mt-10 drop-shadow-md">
-        {availableCars &&
-          availableCars.map(
-            (cur, idx) =>
-              cur.isDeleted === "false" && (
-                <div
-                  className="bg-white box-shadow rounded-lg  drop-shadow "
-                  key={idx}
-                >
-                  <div className="mx-auto max-w-[320px] px-4 py-2 sm:px-6 sm:py-0 lg:max-w-7xl lg:px-8">
-                    <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden object-contain rounded-md bg-white lg:aspect-none group-hover:opacity-75 lg:h-80 mb-3">
-                      <img
-                        src={`${cur.image[0]}`}
-                        alt={`cur.name`}
-                        className=" w-full object-contain object-center lg:h-full lg:w-full"
-                      />
-                    </div>
-                    <div className="flex justify-between items-start">
-                      <h2 className="text-[14px] capitalize font-semibold tracking-tight text-gray-900">
-                        <span></span>
-                        {cur.name}
-                      </h2>
-
-                      <div className="text-[14px]  flex flex-col items-end">
-                        <p className="font-semibold">{cur.price}</p>
-                        <div className="text-[6px] relative bottom-[3px]">
-                          Per Day
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="my-2 font-mono">
-                      <div className="flex justify-between items-center mb-5 mt-5">
-                        <h3 className="text-[12px] flex justify-between items-center gap-1 ">
-                          <span>
-                            <FaCarSide />
-                          </span>
-                          {cur.company}
-                        </h3>
-                        <p className=" text-end text-[12px] flex justify-between items-center gap-1">
-                          <span>
-                            <MdAirlineSeatReclineNormal />
-                          </span>
-                          {cur.seats}
-                        </p>
-                      </div>
-                      <div className="flex justify-between items-center text-[12px] mb-5 ">
-                        <p className="flex items-center justify-center gap-1">
-                          <FaCarSide />
-                          {cur.car_type}
-                        </p>
-                        <p className="flex justify-between items-center gap-1">
-                          <>
-                            <button
-                              className="bg-green-500 rounded-sm text-black px-6 py-2"
-                              onClick={() => {
-                                showVarients(cur.model);
-                              }}
-                            >
-                              Select
-                            </button>
-                          </>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-          )}
-      </div>
-      {!availableCars || (availableCars.length == 0 && <CarNotFound />)}
-    </div>
+      {visibleCars.length > 0 ? (
+        <div className="mt-8 grid grid-cols-1 justify-items-center gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {visibleCars.map((vehicle) => (
+            <VehicleCard
+              key={vehicle._id}
+              vehicle={vehicle}
+              primaryLabel="Select"
+              showSecondary={false}
+              onPrimary={() => showVarients(vehicle.model)}
+            />
+          ))}
+        </div>
+      ) : (
+        <CarNotFound />
+      )}
+    </main>
   );
 };
 

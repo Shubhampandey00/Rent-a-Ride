@@ -79,6 +79,27 @@ const VehicleDetails = () => {
     }
   };
 
+  if (!singleVehicleDetail || singleVehicleDetail.succes === false) {
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center bg-slate-50 px-5 text-center dark:bg-[#06111f]">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Vehicle details are unavailable
+          </h1>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
+            Choose a vehicle from the fleet to view its details.
+          </p>
+          <Link
+            to="/vehicles"
+            className="mt-6 inline-flex rounded-md bg-emerald-500 px-5 py-3 font-bold text-slate-950 transition hover:bg-emerald-400"
+          >
+            Browse vehicles
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <div>
       <section className="py-12 sm:py-8 lg:py-0 bg-white">
